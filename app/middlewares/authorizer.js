@@ -71,7 +71,7 @@ module.exports = options => {
             decoded.metadata.role === undefined ||
             !decoded.metadata ||
             !decoded.metadata.role ||
-            user.role.toString() !== decoded.metadata.role
+            user.role._id.toString() !== decoded.metadata.role
           ) {
             blacklist.revoke(req.user);
             res.app.emit('UserSessionTerminated', req, res, {
