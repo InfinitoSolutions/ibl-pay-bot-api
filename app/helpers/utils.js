@@ -27,7 +27,7 @@ module.exports = {
         .update(user.id.toString() + currentTimestamp.toString())
         .digest('hex'),
       metadata: {
-        role: role
+        role: role || user.role
       }
     };
     const secretKey = ops && ops.download ? process.env.JWT_DOWNLOAD_SECRET : process.env.JWT_SECRET;
