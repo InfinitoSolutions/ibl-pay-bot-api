@@ -1,0 +1,23 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Following transactions are unsuccessfully processed on blockchain:
+    |
+    table.listBuyer
+      tr
+        th Date
+        th Buyer Name
+        th Email
+        th Currency
+        th Amount
+        th Error message
+      each txn in listTrans
+          tr
+            td#date #{txn.created_at}
+            td #{txn.buyer.display_name}
+            td #{txn.buyer.email}
+            td #{txn.currency}
+            td #{txn.amount}
+            td #{txn.reason_failed}
+            

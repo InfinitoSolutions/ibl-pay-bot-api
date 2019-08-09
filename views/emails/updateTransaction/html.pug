@@ -1,0 +1,28 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Dear #{firstName} #{lastName},
+    - if (status != 'approved')
+      p Your fund withdrawal request below was #{status}
+    - else
+      p Your following withdrawal request has been #{status}
+    |
+    p - Request date: #{date}
+    p - Withdrawal amount: #{amount} #{currency}
+    p - Receive address: #{crypto_address}
+    |
+    - if (typeof explanation !== undefined && instruction)
+      p Please find below our explanation:
+      |
+      p.explanation: b #{explanation}
+      |
+    - if (typeof instruction !== undefined && instruction)
+      |
+      p Please follow our instruction below to proceed further with the transaction:
+      |
+      p.instruction: b #{instruction}
+      | 
+    |
+    include ../../foot/footer
+

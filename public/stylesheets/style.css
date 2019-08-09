@@ -1,0 +1,22 @@
+body {
+  padding: 20px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+.explanation,
+.instruction {
+  border: 1px solid #000000;
+  padding: 20px;
+}
+
+.listBuyer {
+  border-collapse: collapse;
+}
+
+table, th, td {
+  border: 1px solid #000000;
+}

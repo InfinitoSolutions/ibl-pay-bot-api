@@ -1,0 +1,20 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Dear #{displayName},
+    each change in changes
+      - var type = change.type.replace('_', ' ')
+      p Your account #{type} was changed from #[strong #{change.old_value}] to #[strong #{change.new_value}].
+    p Below is our explanation:
+    |
+    p.explanation: b #{explanation}
+    |
+    - if (typeof instruction !== "undefined" && instruction)
+      p Your withdrawal requests will be blocked until your account is re-activated/unfrozen/unblocked
+      p Please follow our instruction below to re-activate/unfrozen/unblock your account:
+      |
+      p.explanation: b #{instruction}
+      |
+    include ../../foot/footer
+

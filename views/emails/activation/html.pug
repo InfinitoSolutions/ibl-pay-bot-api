@@ -1,0 +1,8 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Hello #{firstName},
+    p  Your account for Infinito Pay BackOffice Tool has been successfully created with Username #{email}.
+    p Please click #[a(href = appBaseUrl + "/auth/setup-password/" + activationCode) here]  to set up your password and sign into your account.
+    p This is a one-time only link and will expire in 24 hours.

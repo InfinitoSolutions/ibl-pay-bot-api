@@ -1,0 +1,10 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Hello #{firstName},
+    p There is a request to reset your password for your Infinito Pay BackOffice Tool account. Please click #[a(href = appBaseUrl +"/auth/reset-password/" + recoveryCode) here]  to set up the new password.
+    p This is a one-time only link and will expire in 24 hours.
+    p If you did not request your password to be reset, please ignore this email and your password will stay as it is.
+
+

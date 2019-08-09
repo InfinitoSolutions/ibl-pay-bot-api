@@ -1,0 +1,27 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Dear #{firstName} #{lastName},
+    if new_commission_rate !== null
+      p Your merchant contract with Infinito Pay was changed as below:
+      if old_commission_rate !== new_commission_rate
+        p - Commission rate changed from #[strong #{old_commission_rate}] to #[strong #{new_commission_rate}]
+      if old_withdrawal_period !== new_withdrawal_period
+        p - Withdrawal Period changed from #[strong #{old_withdrawal_period}] to #[strong #{new_withdrawal_period}]
+      if old_repeat_on !== new_repeat_on
+        p - Withdrawal Repeat on changed from #[strong #{old_repeat_on}] to #[strong #{new_repeat_on}]
+      |
+    if oldStatus
+      p Your account status was changed from #[strong #{oldStatus}] to #[strong #{newStatus}].
+      |
+    p Below is our explanation
+    p: b #{explanation}
+    if oldStatus
+      - if (typeof instruction !== "undefined" && instruction)
+        p Please follow our instruction below to re-activate/unfreeze/unblock your account.
+        |
+        p: b #{instruction}
+      |
+    include ../../foot/footer
+

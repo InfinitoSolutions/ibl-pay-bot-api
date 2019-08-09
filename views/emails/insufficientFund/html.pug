@@ -1,0 +1,23 @@
+doctype html
+html(lang="en")
+  include ../../head/header
+  body
+    p Available #{currency} balance in Infinito Pay is insufficient to process send fund for following approved withdrawal transactions:
+    |
+    table.listBuyer
+      tr
+        th Date
+        th Buyer Name
+        th Email
+        th Currency
+        th Amount
+      each txn in listTrans
+        tr
+          td#date #{txn.created_at}
+          td #{txn.buyer.display_name}
+          td #{txn.buyer.email}
+          td #{txn.currency}
+          td #{txn.amount}
+    |
+    p Please add #{currency} #{amount} more to process send fund.
+      

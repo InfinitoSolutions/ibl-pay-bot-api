@@ -1,0 +1,24 @@
+module.exports = function(app){
+  app.on('LoginFailed', require('./handlers/auth/loginFailed'));
+  app.on('LoginSuccess', require('./handlers/auth/loginSuccess'));
+  app.on('RequestPassword', require('./handlers/auth/requestPassword'));
+  app.on('ResetPassword', require('./handlers/auth/resetPassword'));
+  app.on('ResendActivate', require('./handlers/auth/resendActivate'));
+  app.on('UserCreated', require('./handlers/user/userCreated'));
+  app.on('UserUpdated', require('./handlers/user/userUpdated'));
+  app.on('UserRoleChanged', require('./handlers/user/userRoleChanged'));
+  app.on('UserNameChanged', require('./handlers/user/userNameChanged'));
+  app.on('UserStatusChanged', require('./handlers/user/userStatusChanged'));
+  app.on('UserSessionTerminated', require('./handlers/user/userSessionTerminated'));
+  app.on('UserLogout', require('./handlers/user/userLogout'));
+  app.on('ChangePasswordFailed', require('./handlers/user/changePasswordFailed'));
+  app.on('ChangePasswordSuccess', require('./handlers/user/changePasswordSuccess'));
+  app.on('UpdateBuyer', require('./handlers/buyer/updateBuyer'));
+  app.on('BackgroundExportRequested', require('./handlers/backgroundExportRequested'));
+  app.on('UpdateTransaction', require('./handlers/transaction/updateTransaction'));
+  app.on('InsufficientFund', require('./handlers/blockchain/insufficientFund'));
+  app.on('UnsuccessfullyBlockchain', require('./handlers/blockchain/unsuccessfulBlockchain'));
+  app.on('UpdateCommissionFee', require('./handlers/setting/updateCommissionFee'));
+  app.on('RemoveWallet', require('./handlers/buyer/removeWallet'));
+  app.on('RegisterWallet', require('./handlers/buyer/registerWallet'));
+};
