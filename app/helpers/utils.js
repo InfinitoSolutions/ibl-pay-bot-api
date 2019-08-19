@@ -3,8 +3,9 @@ const axios = require('axios');
 const crypto = require('crypto');
 const moment = require('moment');
 const ObjectId = require('mongoose').Types.ObjectId;
+const CryptoJS = require('crypto-js');
 const { JWT_DOWNLOAD_EXPIRED_TIME, JWT_EXPIRED_TIME, FORMAT_DATE } = require('app/config/app');
-const { SERVER_BLOCKCHAIN_WITHDRAWAL, BTC_BALANCE_URL, MASTER_ADDRESS } = process.env;
+const { SERVER_BLOCKCHAIN_WITHDRAWAL, IF_API, IF_API_KEY, IF_SECRET, MASTER_ADDRESS } = process.env;
 
 module.exports = {
   trimString: s => {
@@ -70,31 +71,33 @@ module.exports = {
   
   checkBalance: async tran => {
     try {
-      const requests = tran.map(({ tx_id, from_address, currency, to_address, amount }) => ({
-        txId: tx_id,
-        userAddress: from_address,
-        currency,
-        toAddress: to_address,
-        amount: amount * Math.pow(10, 8),
-      }));
+      const { tx_id, from_address, currency, to_address, amount } = tran;
       const options = {
         url: `${SERVER_BLOCKCHAIN_WITHDRAWAL}/api/transaction/withdrawal-check`,
         method: 'post',
         headers: { 
           'Content-Type': 'application/json',
+        //   'Authorization': `Bearer ${process.env.SERVER_BLOCKCHAIN_TOCKEN}`
         },
-        data: { requests }
+        data: {
+          txId: tx_id,
+          userAddress: from_address,
+          currency: currency,
+          toAddress: to_address,
+          amount: amount * Math.pow(10, 8),
+        }
       };
-      const data =  await axios(options);
-      return data;
+      const { data } =  await axios(options);
+      console.info('Withdrawal check balance:  ', data);
+      return { data };
     } catch (err) {
       console.error(err);
-      return err;
     }
   },
 
   checkBalanceSystem: async (transaction) => {
-    const { data: { confirmed_balance } } = await getBalanceBTC();
+    const { access_token } = await getTokenAPI();
+    const confirmed_balance = await getBalanceBTC(access_token);
     const reducer = (accumulator, { amount }) => accumulator + amount;
     const amount = transaction.reduce(reducer, 0);
     if (amount > Number(confirmed_balance)) {
@@ -153,11 +156,45 @@ module.exports = {
   },
 };
 
-const getBalanceBTC = async () => {
-  const option = {
-    url: `${BTC_BALANCE_URL}/${MASTER_ADDRESS}`,
-    method: 'get',
-  };
-  const { data } = await axios(option);
-  return data;
+const getBalanceBTC = async (token) => {
+  try {
+    const option = {
+      url: `${IF_API}/chains/v1/BTC/addr/${MASTER_ADDRESS}/balance`,
+      headers: { Authorization: 'Bearer ' + token },
+      method: 'get',
+    };
+    const { data: { data } } = await axios(option);
+    console.log('Check balance BTC : ', data);
+    const balance = Number(((data.balance + data.unconfirmed_balance) * 1e-8).toFixed(8));
+    return balance;
+  } catch (err) {
+    console.log('Get balance BTC error : ', err);
+  }
+};
+
+const getTokenAPI = async () => {
+  try {
+    const expired = Math.floor(new Date().getTime() / 1000) + 3 * 3600;
+    const body = {
+        api_key: IF_API_KEY,
+        expired,
+        grant_type: 'client_credentials'
+    };
+    const signString = `${IF_SECRET}\nPOST\n/iam/token\n${JSON.stringify(body)}`;
+    const signature = CryptoJS.SHA256(signString).toString();
+    
+    const option = {
+      url: `${IF_API}/iam/token`,
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-signature': signature
+      },
+      data: JSON.stringify(body)
+    };
+    const { data: { data } } = await axios(option);
+    return data;
+  } catch (err) {
+    console.log('Get Token Infinito error : ', err);
+  }
 };
