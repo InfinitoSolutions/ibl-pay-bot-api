@@ -18,7 +18,6 @@ module.exports = async function(){
   changeStream.on('change', async next => {
     await saveResumeToken(next, collectionName);
     const { operationType, documentKey, updateDescription, fullDocument } = next;
-    if (!fullDocument.is_recurring) return;
     const message = JSON.stringify({
       collection: 'bill',
       event: operationType,

@@ -10,6 +10,9 @@ module.exports = async ({ event, info }) => {
       case 'update':
         await handleUpdate(info);
         break;
+      case 'delete':
+        await handleDelete(info);
+        break;
       default:
         break;
     }
@@ -45,7 +48,9 @@ const handleUpdate = async info => {
     documentKey: { _id: origin_id }, 
     updateDescription: { updatedFields: updateSet, removedFields }
   } = info;
-  const { buyers } = fullDocument;
+  const { buyers, is_recurring } = fullDocument;
+
+  if (!is_recurring) return;
 
   updateSet.updated_at = updateSet.updatedAt;
   const updateUnset = {};
@@ -58,6 +63,12 @@ const handleUpdate = async info => {
 
   await bot.ScheduleBill.updateOne({ origin_id }, update);
   console.log('Update bill successful');
+};
+
+const handleDelete = async info => {
+  const { documentKey: { _id: origin_id } } = info;
+  await bot.ScheduleBill.remove({ origin_id });
+  console.log('Delete bill successful');
 };
 
 const lookupBuyers = async buyers => {
