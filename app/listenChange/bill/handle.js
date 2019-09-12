@@ -71,6 +71,7 @@ const handleDelete = async info => {
   console.log('Delete bill successful');
 };
 
+
 const lookupBuyers = async buyers => {
   return await Promise.all(
     buyers.map(async ({ address, amount, user_id }) => {

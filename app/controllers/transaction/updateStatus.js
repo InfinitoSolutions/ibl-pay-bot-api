@@ -23,6 +23,7 @@ module.exports = async (req, res, next) => {
         updateSet.rejected_at = now;
         updateSet.reason_bot = reason;
         updateSet.status = status;
+        updateSet.rejected_by = req.user.id;
         break;
       case BLOCKED:
         updateSet.blocked_at = now;
@@ -37,8 +38,8 @@ module.exports = async (req, res, next) => {
         break;
       case PROCESSING:
         updateSet.sent_date = now;
-        updateSet.sent_by = req.user.id;
         updateSet.status = status;
+        updateSet.sent_by = req.user.id;
         break;
       default:
         break;
@@ -59,88 +60,86 @@ module.exports = async (req, res, next) => {
       }
     }
 
-    if (status === PROCESSING) {
-      try {
-        // check balance BTC of Master wallet
-        let txnApproveList = [];
-        let txnFailedList = [];
-        const result = await checkBalanceSystem(transaction);
-        if (result) {
-          const currency = [...new Set(transaction.map(tran => tran.currency))];
-          res.app.emit('InsufficientFund', req, res, {
-            date: now.toString(),
-            transaction,
-            amount: result,
-            currency,
-            email: req.user.email
-          });
-          return next({
-            message: {
-              title: 'Insufficient fund in Master address for send fund',
-              body: `Please add ${currency} ${result} more to process send fund.`
-            }
-          });
-        }
+    if (status === PROCESSING || status === REJECTED) {
+      let txnApproveList = [];
+      let txnFailedList = [];
+      // check balance BTC of Master wallet
+      const result = await checkBalanceSystem(transaction);
+      if (result) {
+        const currency = [...new Set(transaction.map(tran => tran.currency))];
+        res.app.emit('InsufficientFund', req, res, {
+          date: now.toString(),
+          transaction,
+          amount: result,
+          currency,
+          email: req.user.email
+        });
+        return next({
+          message: {
+            title: 'Insufficient fund in Master address for send fund',
+            body: `Please add ${currency} ${result} more to process send fund.`
+          }
+        });
+      }
 
-        const { data: txnList, statusText } = await checkBalance(transaction);
-        if (statusText !== 'OK') {
-          return next({
-            message: 'An internal server error occurred. Please try again later.',
-            name: errorConfig.type.INTERNAL_SERVER_ERROR
-          });
-        }
-        if (txnList.status) {
-          callWithdrawal(transaction, status);
-        } else {
-          txnList.data.forEach(({ txId, status, msg }, index) => {
-            transaction.forEach(async (tran) => {
-              if (tran.tx_id === txId && status === false) {
-                txnFailedList.push(tran);
-                const setUpdate = {
-                  reason: msg,
-                  failed_at: now,
-                  status: FAILED,
-                  bot_status: FAILED,
-                };
-                tran.reason_failed = msg;
-
-                await buyerDb.Transaction.updateOne({ _id: ObjectId(tran._id) }, { $set: setUpdate });
-              }
-              if (tran.tx_id === txId && status === true) {
-                txnApproveList.push(tran);
-                await buyerDb.Transaction.updateOne({ _id: ObjectId(tran._id) }, { $set: updateSet });
-              }
-            });
-
-            if (txnFailedList.length > 0 && index === transaction.length - 1) {
-              res.app.emit('UnsuccessfullyBlockchain', req, res, {
-                txnFailedList,
-                email: req.user.email
-              });
-              res.app.emit('UpdateTransaction', req, res, {
-                status: FAILED,
-                transaction: txnFailedList,
-                instruction,
-              });
-            }
-            if (txnApproveList.length > 0 && index === transaction.length - 1) {
-                callWithdrawal(txnApproveList, status);
-              }
-          });
-        }
-      } catch (err) {
-        console.error(err);
+      const { data: txnList, statusText } = await checkBalance(transaction);
+      if (statusText !== 'OK') {
         return next({
           message: 'An internal server error occurred. Please try again later.',
           name: errorConfig.type.INTERNAL_SERVER_ERROR
         });
       }
+      if (txnList.status) {
+        await callWithdrawal(transaction, status);
+      } else {
+        const { data } = txnList;
+        for (let i = 0; i < data.length; i++) {
+          const txId = data[i].txId;
+          const status = data[i].status;
+          const errorMessage = data[i].msg;
+
+          for (let t = 0; t < transaction.length; t++) {
+            const tran = transaction[t];
+            if (tran.tx_id === txId) {
+              if (status === false) {
+                txnFailedList.push(tran);
+                const setUpdate = {
+                  reason: errorMessage,
+                  sent_date: now,
+                  failed_at: now,
+                  status: FAILED,
+                  bot_status: FAILED,
+                };
+                tran.reason_failed = errorMessage;
+
+                await buyerDb.Transaction.updateOne({ _id: ObjectId(tran._id) }, { $set: setUpdate });
+              } else {
+                txnApproveList.push(tran);
+                await buyerDb.Transaction.updateOne({ _id: ObjectId(tran._id) }, { $set: updateSet });
+              }
+            }
+          }
+        }
+        if (txnFailedList.length > 0) {
+          console.info('Transaction failded list: ', txnFailedList);
+          res.app.emit('UnsuccessfullyBlockchain', req, res, {
+            txnFailedList,
+            email: req.user.email
+          });
+          res.app.emit('UpdateTransaction', req, res, {
+            status: FAILED,
+            transaction: txnFailedList,
+            instruction,
+          });
+        }
+        if (txnApproveList.length > 0) {
+          console.info('Transaction approved list: ', txnApproveList);
+          await callWithdrawal(txnApproveList, status);
+        }
+      }
     }
-    if (status === REJECTED) {
-      await callWithdrawal(transaction, status);
-    }
-  
-    if (status !== PROCESSING) {
+
+    if (![PROCESSING, REJECTED].includes(status)) {
       // update status without approved
       const updateTransaction = await buyerDb.Transaction.updateMany(
         { _id: { $in: tranIds } },
@@ -193,7 +192,8 @@ const callWithdrawal = async (tran, status) => {
         rejected: status === REJECTED ? true : false
       }
     };
-    await axios(options);
+    const result = await axios(options);
+    console.info('call withdraw result: ', result);
   } catch (err) {
     console.error(err);
     return err;
